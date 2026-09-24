@@ -1,36 +1,12 @@
 import type { HouseDesign } from "./types";
-
 export const demoDesign: HouseDesign = {
-  title: "Cliffside Glass House",
-  analysis: {
-    style: "Tropical contemporary",
-    massing: "Stacked and offset horizontal volumes with deep terraces and cantilevered slabs",
-    roof: "Broad flat and low-pitch roof planes with generous overhangs",
-    materials: ["white concrete", "clear glass", "dark metal", "warm timber"],
-    windows: "Large floor-to-ceiling glazed walls concentrated along view-facing elevations",
-    signatureFeatures: ["cantilevered upper volume", "deep terraces", "large glass walls", "reflecting pool", "indoor-outdoor connection"]
-  },
-  concept: "An original multi-level tropical house inspired by horizontal slabs, transparent living spaces and deep outdoor terraces.",
-  width: 52, depth: 42, floors: 2, ceilingHeight: 10,
-  rooms: [
-    { name: "Living", x: 2, z: 3, width: 24, depth: 18, floor: 0 },
-    { name: "Kitchen + Dining", x: 26, z: 3, width: 22, depth: 18, floor: 0 },
-    { name: "Guest Suite", x: 2, z: 21, width: 17, depth: 17, floor: 0 },
-    { name: "Entry + Stair", x: 19, z: 21, width: 12, depth: 17, floor: 0 },
-    { name: "Studio", x: 31, z: 21, width: 17, depth: 17, floor: 0 },
-    { name: "Primary Suite", x: 5, z: 5, width: 23, depth: 18, floor: 1 },
-    { name: "Bedroom 2", x: 28, z: 5, width: 19, depth: 16, floor: 1 },
-    { name: "Bedroom 3", x: 28, z: 21, width: 19, depth: 16, floor: 1 },
-    { name: "Upper Lounge", x: 5, z: 23, width: 23, depth: 14, floor: 1 }
-  ],
-  features: [
-    { type: "terrace", x: 0, z: -2, width: 52, depth: 5, floor: 0 },
-    { type: "terrace", x: 3, z: 0, width: 34, depth: 5, floor: 1 },
-    { type: "pool", x: 13, z: -12, width: 27, depth: 9, floor: 0 },
-    { type: "glassWall", x: 2, z: 3, width: 24, depth: 0.2, floor: 0 },
-    { type: "glassWall", x: 26, z: 3, width: 22, depth: 0.2, floor: 0 },
-    { type: "glassWall", x: 5, z: 5, width: 23, depth: 0.2, floor: 1 },
-    { type: "overhang", x: 0, z: -2, width: 54, depth: 8, floor: 1 },
-    { type: "roofSlab", x: 3, z: 3, width: 46, depth: 36, floor: 1 }
-  ]
+ title:"Tropical Cantilever House",
+ analysis:{style:"Tropical modernism",massing:"Three strongly horizontal, offset levels stepping down a hillside",roof:"Thin broad flat roof planes with deep cantilevered eaves",materials:["white concrete","floor-to-ceiling glass","dark metal","warm timber"],windows:"Continuous view-facing glazing with shaded floor-to-ceiling panels",signatureFeatures:["stacked cantilevered slabs","infinity-style pool","deep terraces","timber sun screens","open glass pavilions","hillside composition"]},
+ concept:"A dramatic original hillside residence built from offset concrete slabs and transparent pavilions. Deep terraces, a projecting pool and shaded glazing create the same indoor-outdoor architectural language as the reference while using a new conceptual layout.",
+ width:52,depth:42,floors:2,ceilingHeight:10,
+ rooms:[
+ {name:"Great Room",x:14,z:4,width:30,depth:17,floor:0},{name:"Guest Wing",x:2,z:18,width:17,depth:20,floor:0},{name:"Kitchen",x:31,z:20,width:17,depth:18,floor:0},
+ {name:"Primary Suite",x:6,z:5,width:23,depth:18,floor:1},{name:"Bedroom Wing",x:29,z:5,width:18,depth:31,floor:1},{name:"Upper Lounge",x:6,z:23,width:23,depth:13,floor:1}
+ ],
+ features:[{type:"pool",x:12,z:-14,width:31,depth:12,floor:0},{type:"terrace",x:0,z:-6,width:52,depth:8,floor:0},{type:"terrace",x:2,z:-3,width:46,depth:8,floor:1},{type:"glassWall",x:14,z:4,width:30,depth:.2,floor:0},{type:"glassWall",x:6,z:5,width:23,depth:.2,floor:1},{type:"overhang",x:-3,z:-4,width:58,depth:12,floor:1},{type:"roofSlab",x:-3,z:0,width:58,depth:45,floor:1}]
 };
