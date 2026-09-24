@@ -4,6 +4,7 @@ import { ChangeEvent, useState } from "react";
 import { Building2, ImagePlus, Link2, Sparkles, Upload, Footprints, Orbit, Layers3 } from "lucide-react";
 import FloorPlan from "@/components/FloorPlan";
 import HouseScene from "@/components/HouseScene";
+import WorldScene from "@/components/WorldScene";
 import type { HouseDesign } from "@/lib/types";
 
 type View = "plan" | "3d";
@@ -21,6 +22,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState("");
+  const [worldMeshes, setWorldMeshes] = useState<string[]>([]);
+  const [worldStatus, setWorldStatus] = useState("");
 
   function chooseFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -42,6 +45,18 @@ export default function Home() {
     reader.readAsDataURL(file);
   }
 
+  async function generateWorld() {
+    if (!image) { setError("For local world generation, upload the image file rather than a URL."); return false; }
+    try {
+      setWorldStatus("Connecting to local world model…");
+      const blob = await (await fetch(image)).blob(); const fd = new FormData(); fd.append("image", blob, "reference.png");
+      const start = await fetch("http://127.0.0.1:8787/generate",{method:"POST",body:fd});
+      const sj = await start.json(); if(!start.ok) throw new Error(sj.error || "Local world backend unavailable");
+      for(let i=0;i<360;i++){ await new Promise(r=>setTimeout(r,2000)); const jr=await fetch(`http://127.0.0.1:8787/jobs/${sj.jobId}`); const j=await jr.json(); setWorldStatus(j.status==="panorama"?"Generating unseen views…":j.status==="scene"?"Building explorable 3D world…":j.status); if(j.status==="complete"){setWorldMeshes(j.meshes||[]);setView("3d");return true;} if(j.status==="error")throw new Error(j.error); }
+      throw new Error("Local generation timed out.");
+    } catch(e:any){ setWorldStatus(""); setError(e?.message || "Local world generation failed."); return false; }
+  }
+
   async function generate() {
     if (!image && !imageUrl.trim()) {
       setError("Upload a house image or paste a direct image URL first.");
@@ -50,7 +65,14 @@ export default function Home() {
     setLoading(true);
     setError("");
     setDesign(null);
+    setWorldMeshes([]);
     try {
+      const worldOk = await generateWorld();
+      if (worldOk) {
+        const res = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image,imageUrl:imageUrl.trim(),squareFeet,bedrooms,floors})});
+        const data=await res.json(); if(res.ok){setDesign(data.design);setDemo(false);} setSelectedFloor(0); setWalkthrough(false); return;
+      }
+      setError("");
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -136,7 +158,7 @@ export default function Home() {
             </div>
             <button className="primary" onClick={generate} disabled={loading}>
               <Sparkles size={19} />
-              {loading ? "Designing your house…" : "Generate house concept"}
+              {loading ? (worldStatus || "Generating world…") : "Generate explorable house"}
             </button>
             <p className="fineprint">Conceptual visualization only — not construction or permit documents.</p>
             {error && <div className="error">{error}</div>}
@@ -147,8 +169,8 @@ export default function Home() {
       {loading && (
         <section className="generating">
           <div className="pulse"><Sparkles size={28} /></div>
-          <h2>Reading the architecture…</h2>
-          <p>Extracting massing, roof language, materials and proportions, then building an original layout.</p>
+          <h2>{worldStatus || "Generating your world…"}</h2>
+          <p>Local generation can take several minutes. The finished 3D scene will replace the procedural house.</p>
         </section>
       )}
 
@@ -163,7 +185,7 @@ export default function Home() {
             <button className="secondary" onClick={() => setDesign(null)}>Start another</button>
           </div>
 
-          {demo && <div className="demo-note">Add OPENAI_API_KEY in .env.local to analyze your uploaded reference. The 2D/3D experience below is using the built-in sample design.</div>}
+          {demo && <div className="demo-note">Local world generation is not connected, so this is the procedural fallback. Start local-world/server.py with HunyuanWorld configured to render the generated world.</div>}
 
           <div className="analysis-strip">
             <div><span>Style</span><strong>{design.analysis.style}</strong></div>
@@ -192,7 +214,7 @@ export default function Home() {
               )}
             </div>
 
-            {view === "plan" ? <FloorPlan design={design} floor={selectedFloor} /> : <HouseScene design={design} walkthrough={walkthrough} />}
+            {view === "plan" ? <FloorPlan design={design} floor={selectedFloor} /> : worldMeshes.length ? <WorldScene urls={worldMeshes} walkthrough={walkthrough} /> : <HouseScene design={design} walkthrough={walkthrough} />}
           </div>
 
           <div className="details-grid">
