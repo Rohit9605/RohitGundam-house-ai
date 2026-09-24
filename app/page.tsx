@@ -3,7 +3,6 @@
 import { ChangeEvent, useState } from "react";
 import { Building2, ImagePlus, Link2, Sparkles, Upload, Footprints, Orbit, Layers3 } from "lucide-react";
 import FloorPlan from "@/components/FloorPlan";
-import HouseScene from "@/components/HouseScene";
 import WorldScene from "@/components/WorldScene";
 import type { HouseDesign } from "@/lib/types";
 
@@ -48,15 +47,15 @@ export default function Home() {
 
   async function generateWorld() {
     if (!image) { setError("Upload the inspiration image as a file for 3D world generation."); return false; }
-    const api = worldApi.trim().replace(/\\\/$/, "");
+    const api = worldApi.trim().replace(/\/$/, "");
     if (!api) { setError("Paste the Colab backend URL first."); return false; }
     try {
       setWorldStatus("Connecting to Colab GPU…");
       const blob = await (await fetch(image)).blob(); const fd = new FormData(); fd.append("image", blob, "reference.png");
       const start = await fetch(`${api}/generate`,{method:"POST",body:fd});
       const sj = await start.json(); if(!start.ok) throw new Error(sj.error || "Local world backend unavailable");
-      for(let i=0;i<360;i++){ await new Promise(r=>setTimeout(r,2000)); const jr=await fetch(`${api}/jobs/${sj.jobId}`); const j=await jr.json(); setWorldStatus(j.status==="panorama"?"Generating unseen views…":j.status==="scene"?"Building explorable 3D world…":j.status); if(j.status==="complete"){setWorldMeshes(j.meshes||[]);setView("3d");return true;} if(j.status==="error")throw new Error(j.error); }
-      throw new Error("Local generation timed out.");
+      for(let i=0;i<360;i++){ await new Promise(r=>setTimeout(r,2000)); const jr=await fetch(`${api}/jobs/${sj.jobId}`); const j=await jr.json(); setWorldStatus(j.status==="reconstructing"?"Reconstructing textured 3D geometry…":j.status); if(j.status==="complete"){setWorldMeshes((j.meshes||[]).map((u:string)=>u.startsWith("http")?u:`${api}${u}`));setView("3d");return true;} if(j.status==="error")throw new Error(j.error); }
+      throw new Error("Colab generation timed out.");
     } catch(e:any){ setWorldStatus(""); setError(e?.message || "Colab world generation failed."); return false; }
   }
 
@@ -128,7 +127,10 @@ export default function Home() {
           </div>
 
           <div className="panel">
-            <div className="panel-title"><Layers3 size={19} /> 2. Connect the Colab generator</div>\n            <label>Colab backend URL<input value={worldApi} onChange={(e) => setWorldApi(e.target.value)} placeholder="https://...trycloudflare.com" /></label>\n            <p className="fineprint">Run the House AI Colab notebook, then paste the public URL it prints here.</p>\n            <div className="panel-title" style={{marginTop:16}}>3. Set a few constraints</div>
+            <div className="panel-title"><Layers3 size={19} /> 2. Connect the Colab generator</div>
+            <label>Colab backend URL<input value={worldApi} onChange={(e) => setWorldApi(e.target.value)} placeholder="https://...trycloudflare.com" /></label>
+            <p className="fineprint">Run the House AI Colab notebook, then paste the public URL it prints here.</p>
+            <div className="panel-title" style={{marginTop:16}}>3. Set a few constraints</div>
             <div className="field-row">
               <label>
                 Approx. square feet
@@ -205,7 +207,7 @@ export default function Home() {
               )}
             </div>
 
-            {view === "plan" ? <FloorPlan design={design} floor={selectedFloor} /> : worldMeshes.length ? <WorldScene urls={worldMeshes} walkthrough={walkthrough} /> : <HouseScene design={design} walkthrough={walkthrough} />}
+            {view === "plan" ? <FloorPlan design={design} floor={selectedFloor} /> : worldMeshes.length ? <WorldScene urls={worldMeshes} walkthrough={walkthrough} /> : <div className="error">No generated 3D model was returned.</div>}
           </div>
 
           <div className="details-grid">
