@@ -24,6 +24,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [worldMeshes, setWorldMeshes] = useState<string[]>([]);
   const [worldStatus, setWorldStatus] = useState("");
+  const [worldApi, setWorldApi] = useState(process.env.NEXT_PUBLIC_WORLD_API_URL || "");
 
   function chooseFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -46,15 +47,17 @@ export default function Home() {
   }
 
   async function generateWorld() {
-    if (!image) { setError("For local world generation, upload the image file rather than a URL."); return false; }
+    if (!image) { setError("Upload the inspiration image as a file for 3D world generation."); return false; }
+    const api = worldApi.trim().replace(/\\\/$/, "");
+    if (!api) { setError("Paste the Colab backend URL first."); return false; }
     try {
-      setWorldStatus("Connecting to local world model…");
+      setWorldStatus("Connecting to Colab GPU…");
       const blob = await (await fetch(image)).blob(); const fd = new FormData(); fd.append("image", blob, "reference.png");
-      const start = await fetch("http://127.0.0.1:8787/generate",{method:"POST",body:fd});
+      const start = await fetch(`${api}/generate`,{method:"POST",body:fd});
       const sj = await start.json(); if(!start.ok) throw new Error(sj.error || "Local world backend unavailable");
-      for(let i=0;i<360;i++){ await new Promise(r=>setTimeout(r,2000)); const jr=await fetch(`http://127.0.0.1:8787/jobs/${sj.jobId}`); const j=await jr.json(); setWorldStatus(j.status==="panorama"?"Generating unseen views…":j.status==="scene"?"Building explorable 3D world…":j.status); if(j.status==="complete"){setWorldMeshes(j.meshes||[]);setView("3d");return true;} if(j.status==="error")throw new Error(j.error); }
+      for(let i=0;i<360;i++){ await new Promise(r=>setTimeout(r,2000)); const jr=await fetch(`${api}/jobs/${sj.jobId}`); const j=await jr.json(); setWorldStatus(j.status==="panorama"?"Generating unseen views…":j.status==="scene"?"Building explorable 3D world…":j.status); if(j.status==="complete"){setWorldMeshes(j.meshes||[]);setView("3d");return true;} if(j.status==="error")throw new Error(j.error); }
       throw new Error("Local generation timed out.");
-    } catch(e:any){ setWorldStatus(""); setError(e?.message || "Local world generation failed."); return false; }
+    } catch(e:any){ setWorldStatus(""); setError(e?.message || "Colab world generation failed."); return false; }
   }
 
   async function generate() {
@@ -68,23 +71,11 @@ export default function Home() {
     setWorldMeshes([]);
     try {
       const worldOk = await generateWorld();
-      if (worldOk) {
-        const res = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image,imageUrl:imageUrl.trim(),squareFeet,bedrooms,floors})});
-        const data=await res.json(); if(res.ok){setDesign(data.design);setDemo(false);} setSelectedFloor(0); setWalkthrough(false); return;
-      }
-      setError("");
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, imageUrl: imageUrl.trim(), squareFeet, bedrooms, floors }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Generation failed");
-      setDesign(data.design);
-      setDemo(Boolean(data.demo));
-      setSelectedFloor(0);
-      setView("plan");
-      setWalkthrough(false);
+      if (!worldOk) return;
+      const res = await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image,imageUrl:imageUrl.trim(),squareFeet,bedrooms,floors})});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error || "Unable to create scene metadata");
+      setDesign(data.design); setDemo(false); setSelectedFloor(0); setView("3d"); setWalkthrough(false);
     } catch (e: any) {
       setError(e?.message || "Unable to generate a house.");
     } finally {
@@ -137,7 +128,7 @@ export default function Home() {
           </div>
 
           <div className="panel">
-            <div className="panel-title"><Layers3 size={19} /> 2. Set a few constraints</div>
+            <div className="panel-title"><Layers3 size={19} /> 2. Connect the Colab generator</div>\n            <label>Colab backend URL<input value={worldApi} onChange={(e) => setWorldApi(e.target.value)} placeholder="https://...trycloudflare.com" /></label>\n            <p className="fineprint">Run the House AI Colab notebook, then paste the public URL it prints here.</p>\n            <div className="panel-title" style={{marginTop:16}}>3. Set a few constraints</div>
             <div className="field-row">
               <label>
                 Approx. square feet
@@ -170,7 +161,7 @@ export default function Home() {
         <section className="generating">
           <div className="pulse"><Sparkles size={28} /></div>
           <h2>{worldStatus || "Generating your world…"}</h2>
-          <p>Local generation can take several minutes. The finished 3D scene will replace the procedural house.</p>
+          <p>Generation runs on the connected Colab GPU and can take several minutes. No procedural fallback is used.</p>
         </section>
       )}
 
@@ -185,7 +176,7 @@ export default function Home() {
             <button className="secondary" onClick={() => setDesign(null)}>Start another</button>
           </div>
 
-          {demo && <div className="demo-note">Local world generation is not connected, so this is the procedural fallback. Start local-world/server.py with HunyuanWorld configured to render the generated world.</div>}
+          
 
           <div className="analysis-strip">
             <div><span>Style</span><strong>{design.analysis.style}</strong></div>
